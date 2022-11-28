@@ -1,6 +1,7 @@
 from requests import post, get, HTTPError
 
-BASE_URL = 'http://localhost:3123/animals/v1'
+# host.docker.internal is to access localhost
+BASE_URL = 'http://host.docker.internal:3123/animals/v1'
 
 
 def retry_request(url, callbacks, errors, request_type='GET', request_body=None):

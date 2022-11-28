@@ -7,6 +7,7 @@ from helpers import retry_request
 class ExtractTransformLoad:
     """
     The class ExtractTransformLoad performs the following core operations
+
     1. Get animals using "/animals/v1/animals" endpoint
     2. Get animal json response using "/animals/v1/animals/<id>" endpoint
     3. Transform the "animal" response
@@ -22,7 +23,7 @@ class ExtractTransformLoad:
         self.total_animals = 0
         self.animals_home_post_limit = 100
 
-        self.results = []
+        self.transformed_animals = []
         self.error_logs = []
 
     @staticmethod
@@ -39,18 +40,18 @@ class ExtractTransformLoad:
         return current_result
 
     def add_to_result(self, result):
-        self.results.append(self.transform_animal_result(result))
-        if len(self.results) == self.animals_home_post_limit:
-            self.post_to_animals_home(self.results)
-            self.results = []
+        self.transformed_animals.append(self.transform_animal_result(result))
+        if len(self.transformed_animals) == self.animals_home_post_limit:
+            self.post_to_animals_home()
+            self.transformed_animals = []
 
     def set_page_details(self, animal):
         self.current_page = self.current_page + 1
         self.total_animals += len(animal['items'])
         self.total_pages = animal['total_pages']
 
-    def post_to_animals_home(self, current_results):
-        retry_request('/home', [self.log_animals_home_response], self.error_logs, 'POST', current_results)
+    def post_to_animals_home(self):
+        retry_request('/home', [self.log_animals_home_response], self.error_logs, 'POST', self.transformed_animals)
 
     def get_animal(self, animals):
         for animal in animals['items']:
@@ -64,8 +65,10 @@ class ExtractTransformLoad:
             retry_request(f'/animals/?page={self.current_page}', [self.set_page_details, self.get_animal],
                           self.error_logs)
 
-        self.post_to_animals_home(self.results)
-        self.results = []
+        # post the remaining animals to animals home
+        if len(self.transformed_animals):
+            self.post_to_animals_home()
+            self.transformed_animals = []
 
 
 if __name__ == '__main__':
